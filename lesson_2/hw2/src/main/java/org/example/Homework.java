@@ -5,9 +5,13 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -16,18 +20,19 @@ public class Homework {
 
         Example example = new Example();
         RandomDateProcessor.processRandomLocalDate(example);
-        Instant instant = Instant.parse("2018-11-30T18:35:24.00Z");
-        System.out.println(instant);
+        System.out.println(example);
     }
 
     private static class Example {
         @RandomDate(min = "2024-12-01", max = "2024-12-10")
         LocalDate Localdate;
-
+        @RandomDate(min = "2024-12-01", max = "2024-12-10")
         Date date;
 
+        @RandomDate(min = "2024-12-01", max = "2024-12-10")
         LocalDateTime localDateTime;
 
+        @RandomDate(min = "2024-12-01", max = "2024-12-10")
         Instant instant;
 
 
@@ -35,11 +40,13 @@ public class Homework {
         }
 
 
-
         @Override
         public String toString() {
             return "Example{" +
-                    "date=" + date +
+                    "\nLocalDate=" + Localdate +
+                    "\ndate=" + date +
+                    ",\nlocalDateTime=" + localDateTime +
+                    ",\ninstant=" + instant +
                     '}';
         }
     }
@@ -71,37 +78,66 @@ public class Homework {
             for (Field declaredField : object.getClass().getDeclaredFields()) {
                 RandomDate annotation = declaredField.getAnnotation(RandomDate.class);
 //                System.out.println(declaredField.getGenericType().getTypeName());
-                switch (declaredField.getGenericType().getTypeName()){
-                    case "java.time.LocalDate":
-                        break;
-                    case "java.util.Date":
-                        break;
-                    case "java.time.LocalDateTime":
-                        break;
-                    case "java.time.Instant":
-                        break;
-                }
                 if (annotation != null) {
-                    LocalDate min = LocalDate.parse(annotation.min());
-                    LocalDate max = LocalDate.parse(annotation.max());
                     declaredField.setAccessible(true);
-
-                    try {
-                        long unixStartTime = min.toEpochDay();
-                        long unixEndTime = max.toEpochDay();
-                        long randomDate = ThreadLocalRandom.current().nextLong(unixStartTime, unixEndTime);
-                        LocalDate result = LocalDate.ofEpochDay(randomDate);
-                        declaredField.set(object, result);
-                    } catch (IllegalAccessException e) {
-                        System.err.println("Не удалось подставить рандомное значение: " + e);
+                    switch (declaredField.getGenericType().getTypeName()) {
+                        case "java.time.LocalDate":
+                            try {
+                                declaredField.set(object, processLocalDate(annotation));
+                            } catch (IllegalAccessException e) {
+                                System.err.println("Не удалось подставить рандомное значение: " + e);
+                            }
+                            break;
+                        case "java.util.Date":
+                            try {
+                                declaredField.set(object, processDate(annotation));
+                            } catch (IllegalAccessException e) {
+                                System.err.println("Не удалось подставить рандомное значение: " + e);
+                            }
+                            break;
+                        case "java.time.LocalDateTime":
+                            try {
+                                declaredField.set(object, processLocalDateTime(annotation));
+                            } catch (IllegalAccessException e) {
+                                System.err.println("Не удалось подставить рандомное значение: " + e);
+                            }
+                            break;
+                        case "java.time.Instant":
+                            try {
+                                declaredField.set(object,processInstant(annotation));
+                            } catch (IllegalAccessException e) {
+                                System.err.println("Не удалось подставить рандомное значение: " + e);
+                            }
+                            break;
                     }
                 }
+
+
             }
-        }
-
-        private void processLocalDate(){
-
         }
     }
 
+    private static LocalDate processLocalDate(RandomDate annotation) {
+        LocalDate min = LocalDate.parse(annotation.min());
+        LocalDate max = LocalDate.parse(annotation.max());
+        long unixStartTime = min.toEpochDay();
+        long unixEndTime = max.toEpochDay();
+        long randomDate = ThreadLocalRandom.current().nextLong(unixStartTime, unixEndTime);
+        return LocalDate.ofEpochDay(randomDate);
+    }
+
+    private static Date processDate(RandomDate annotation) {
+        LocalDate randomLocalDate = processLocalDate(annotation);
+        return new Date(randomLocalDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli());
+    }
+
+    private static LocalDateTime processLocalDateTime(RandomDate annotation) {
+        return processLocalDate(annotation).atStartOfDay();
+    }
+
+    private static Instant processInstant(RandomDate annotation){
+        LocalDate randomLocalDate = processLocalDate(annotation);
+        return  Instant.ofEpochSecond(randomLocalDate.toEpochSecond(randomLocalDate.atStartOfDay().toLocalTime(),ZoneOffset.UTC));
+    }
 }
+
