@@ -1,17 +1,30 @@
 package org.example;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+    public static void main(String[] args) throws ClassNotFoundException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        Class<?> car = Class.forName("org.example.Car");
+        Constructor<?>[] constructors = car.getConstructors();
+        Object gaz = constructors[0].newInstance("ГАЗ");
+        System.out.println(gaz);
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+        Field[] fields = gaz.getClass().getFields();
+        int temp  = fields[fields.length -1].getInt(gaz);
+
+        fields[fields.length - 1].setInt(gaz,temp * 2);
+        System.out.println(gaz);
+
+        Method[] methods = gaz.getClass().getDeclaredMethods();
+        for (int i = 0; i < methods.length; i++) {
+            System.out.println(methods[i]);
         }
+
+        //TODO 1:32:21
     }
 }
