@@ -1,17 +1,88 @@
 package org.example;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+
+import java.sql.*;
+import java.util.UUID;
+
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+
+        try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:testdb", "root", "root")) {
+            acceptConnection(connection);
+        } catch (SQLException e) {
+            System.err.println("Не удалось подключиться к БД: " + e.getMessage());
+        }
+    }
+
+    static void acceptConnection(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE person(
+                    id BIGINT,
+                    name VARCHAR(256),
+                    age SMALLINT
+                    )
+                    """);
+        }
+
+        try (Statement statement = connection.createStatement()) {
+            int count = statement.executeUpdate("""
+                    INSERT INTO person(id,name,age) VALUES
+                    (1,'Igor',25),
+                    (2,'John',36),
+                    (3,'Peter',47)
+                    """);
+            System.out.println("Количество вставленных строк: " + count);
+        }
+
+        try (Statement statement = connection.createStatement()) {
+            int count = statement.executeUpdate("""
+                    UPDATE person
+                    SET age = -1
+                    WHERE id > 1
+                    """);
+            System.out.println("Количество обновленных строк: " + count);
+        }
+
+
+        try (Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("""
+                    SELECT id,name,age
+                    FROM person
+                    """);
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                int age = resultSet.getInt("age");
+                System.out.println("Прочитана строка:" + String.format("%s, %s, %s", id, name, age));
+            }
+        }
+
+        removePersonById(connection,"1");
+
+
+    }
+
+    static void removePersonById(Connection connection, String idParameter) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            int deletedRowsCount = statement.executeUpdate("DELETE FROM person WHERE id = " + idParameter);
+            System.out.println("Удалено строк: " + deletedRowsCount);
+        }
+        System.out.println("After delete:");
+        try (Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("""
+                    SELECT id,name,age
+                    FROM person
+                    """);
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                int age = resultSet.getInt("age");
+                System.out.println("Прочитана строка:" + String.format("%s, %s, %s", id, name, age));
+            }
         }
     }
 }
